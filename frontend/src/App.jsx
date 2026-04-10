@@ -184,9 +184,12 @@ export default function App() {
   const exportExcel = async (ev) => {
     const qs = QUESTIONS[ev.position_type];
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('DanhGia');
+    const sheet = workbook.addWorksheet('DanhGia', {
+      pageSetup: { fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } }
+    });
+
     sheet.columns = [
-      { width: 5 }, { width: 60 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 15 }
+      { width: 6 }, { width: 75 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 20 }
     ];
 
     // Row 1
@@ -217,20 +220,24 @@ export default function App() {
     sheet.getCell('E3').value = `NGÀY ĐÁNH GIÁ: ${new Date(submitDate).toLocaleDateString('vi-VN')}`;
     sheet.getCell('E3').font = { bold: true };
 
+    const applyBorders = (row) => {
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        if (colNumber <= 6) { // Ensure columns A to F are bordered
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+        }
+      });
+    };
+
     // Row 4: Header
     const hr = sheet.addRow(['TT', 'CÁC NỘI DUNG ĐÁNH GIÁ', 'TỰ CHẤM', 'CEO', 'HỘI ĐỒNG', 'GHI CHÚ']);
     hr.font = { bold: true };
     hr.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    hr.eachCell(cell => {
-      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-    });
+    applyBorders(hr);
 
     qs.forEach((cat, ci) => {
       const cr = sheet.addRow(['', cat.title, '', '', '', '']);
       cr.font = { bold: true };
-      cr.eachCell(cell => {
-        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-      });
+      applyBorders(cr);
 
       cat.items.forEach((item, ii) => {
         const key = `${ci}_${ii}`;
@@ -247,11 +254,9 @@ export default function App() {
         row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
         row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
         row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(6).alignment = { wrapText: true, vertical: 'middle' };
 
-        row.eachCell(cell => {
-          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-        });
+        applyBorders(row);
       });
     });
 
