@@ -220,15 +220,10 @@ export default function App() {
   // 1. Employee Login
   if (view === 'login') return (
     <div className="auth-container">
-      <button className="auth-manager-btn" onClick={() => setView('manager-login')}>🔐 Đăng nhập Quản lý (ceo/leader)</button>
+      <button className="auth-manager-btn" onClick={() => setView('manager-login')}>🔐 Đăng nhập Quản lý</button>
       <div className="auth-card">
         <h1 className="auth-title">Hệ Thống Đánh Giá 2025</h1>
         <p className="auth-subtitle">Phiếu Tự Chấm Cho Nhân Viên Bệnh Viện</p>
-        <div style={{background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid #e2e8f0', fontSize: '0.85rem'}}>
-          <strong>Test Quyền Quản Lý:</strong> Bấm [Đăng nhập Quản lý] góc trên-phải.<br />
-          - CEO/Hội đồng: <strong>ceo</strong> - Mk: <strong>ceo@2025</strong><br />
-          - Trưởng Khoa: <strong>leader1</strong> - Mk: <strong>leader@2025</strong>
-        </div>
         <div className="input-group">
           <label>Họ và tên</label>
           <input className="input-control" value={empName} onChange={e=>setEmpName(e.target.value)} placeholder="Nguyễn Văn A" />
