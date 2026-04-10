@@ -93,53 +93,103 @@ function App() {
     setView('login');
   };
 
-  const exportToExcel = (dataList, filename) => {
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    let headers = ["ID", "Họ Tên", "Khoa Phòng", "Trạng thái", "Ngày nộp", "Tổng điểm NV", "Tổng điểm CEO"];
-
-    // Build headers from categories dynamically
-    categories.forEach((cat, catIdx) => {
-      cat.items.forEach((_, itemIdx) => {
-        headers.push(`[NV] C${catIdx + 1}.${itemIdx + 1}`);
-        headers.push(`[CEO] C${catIdx + 1}.${itemIdx + 1}`);
-      });
-    });
-    csvContent += headers.join(",") + "\n";
+  const exportToExcelFormat = (dataList, filename) => {
+    let htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+      <meta charset="utf-8" />
+      <style>
+        table { border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #000; padding: 5px; }
+        th { background: #1d3557; color: #fff; }
+        .cat-title { background: #e8eaf6; font-weight: bold; }
+      </style>
+      </head>
+      <body>
+    `;
 
     dataList.forEach(ev => {
-      let statusTxt = ev.status === 'CEO_REVIEWED' ? 'Da duyet' : 'Cho duyet';
+      let statusTxt = ev.status === 'CEO_REVIEWED' ? 'Đã duyệt' : 'Chờ duyệt';
       let submittedAt = ev.submitted_at ? new Date(ev.submitted_at).toLocaleString('vi-VN') : '';
-      
-      let totalNV = 0;
-      let totalCEO = 0;
-      let itemCols = [];
-      
+      htmlContent += `
+        <h2>Họ tên: ${ev.employee_name} - Khoa phòng: ${ev.employee_role} - Trạng thái: ${statusTxt} - Nộp lúc: ${submittedAt}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>TT</th>
+              <th>Các nội dung đánh giá</th>
+              <th>Tự chấm</th>
+              <th>CEO</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
       categories.forEach((cat, catIdx) => {
-        cat.items.forEach((_, itemIdx) => {
+        htmlContent += `
+          <tr class="cat-title">
+            <td>-</td>
+            <td colspan="3">${cat.title}</td>
+          </tr>
+        `;
+        cat.items.forEach((item, itemIdx) => {
           const key = `${catIdx}_${itemIdx}`;
           const nvScore = ev.scores && ev.scores[key] !== undefined ? ev.scores[key] : '';
           const ceoScore = ev.ceo_scores && ev.ceo_scores[key] !== undefined ? ev.ceo_scores[key] : '';
-          
-          if (nvScore !== '') totalNV += Number(nvScore);
-          if (ceoScore !== '') totalCEO += Number(ceoScore);
-          
-          itemCols.push(`"${nvScore}"`);
-          itemCols.push(`"${ceoScore}"`);
+          htmlContent += `
+            <tr>
+              <td align="center">${itemIdx + 1}</td>
+              <td>${item}</td>
+              <td align="center">${nvScore}</td>
+              <td align="center">${ceoScore}</td>
+            </tr>
+          `;
         });
       });
-
-      let row = [`${ev.id}`, `"${ev.employee_name}"`, `"${ev.employee_role}"`, `"${statusTxt}"`, `"${submittedAt}"`, `"${totalNV}"`, `"${totalCEO}"`];
-      row = row.concat(itemCols);
-      csvContent += row.join(",") + "\n";
+      htmlContent += `
+          </tbody>
+        </table>
+        <br/>
+      `;
     });
 
-    const encodedUri = encodeURI(csvContent);
+    htmlContent += `</body></html>`;
+    
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", filename);
+    link.href = url;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('.score-input'));
+      const index = inputs.indexOf(e.target);
+      if (index > -1) {
+        for (let i = index + 1; i < inputs.length; i++) {
+          if (!inputs[i].disabled) {
+            inputs[i].focus();
+            break;
+          }
+        }
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('.score-input'));
+      const index = inputs.indexOf(e.target);
+      if (index > 0) {
+        for (let i = index - 1; i >= 0; i--) {
+          if (!inputs[i].disabled) {
+            inputs[i].focus();
+            break;
+          }
+        }
+      }
+    }
   };
 
   const submitCEOReview = async () => {
@@ -260,9 +310,9 @@ function App() {
             onChange={e => setSearchQuery(e.target.value)}
           />
           <button
-            onClick={() => exportToExcel(evaluations, 'DanhSachDanhGia_ToanBo.csv')}
+            onClick={() => exportToExcelFormat(evaluations, 'DanhSachDanhGia_ToanBo.xls')}
             style={{ padding: '0 1.5rem', background: '#2E7D32', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-          >📥 Xuất Web (Tất cả)</button>
+          >📥 Xuất All (Mẫu Bảng)</button>
         </div>
 
         <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
@@ -297,9 +347,9 @@ function App() {
                         style={{ padding: '0.4rem 0.8rem', background: '#e63946', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
                       >Xem & Duyệt</button>
                       <button
-                        onClick={() => exportToExcel([ev], `DanhGia_${ev.employee_name.replace(/\s+/g, '')}.csv`)}
+                        onClick={() => exportToExcelFormat([ev], `DanhGia_${ev.employee_name.replace(/\s+/g, '')}.xls`)}
                         style={{ padding: '0.4rem 0.8rem', background: '#555', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
-                      >Xuất Excel</button>
+                      >Xuất Mẫu Bảng</button>
                     </div>
                   </td>
                 </tr>
@@ -378,10 +428,10 @@ function App() {
                         <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #ddd' }}>{itemIdx + 1}</td>
                         <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{item}</td>
                         <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #ddd' }}>
-                          <input type="number" min="0" max="5" value={empScore || ''} onChange={e => !isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'scores')} disabled={isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px', background: isCEO ? '#f0f0f0' : '#fff' }} placeholder="..." />
+                          <input className="score-input" type="number" min="0" max="5" value={empScore || ''} onChange={e => !isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'scores')} onKeyDown={handleInputKeyDown} disabled={isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px', background: isCEO ? '#f0f0f0' : '#fff' }} placeholder="..." />
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #ddd', background: '#ffeef0' }}>
-                          <input type="number" min="0" max="5" value={ceoScore || ''} onChange={e => isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'ceo_scores')} disabled={!isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: '1px solid #f99', borderRadius: '4px', fontWeight: 'bold', color: '#c62828', background: !isCEO ? '#eee' : '#fff' }} placeholder="GĐ" />
+                          <input className="score-input" type="number" min="0" max="5" value={ceoScore || ''} onChange={e => isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'ceo_scores')} onKeyDown={handleInputKeyDown} disabled={!isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: '1px solid #f99', borderRadius: '4px', fontWeight: 'bold', color: '#c62828', background: !isCEO ? '#eee' : '#fff' }} placeholder="GĐ" />
                         </td>
                       </tr>
                     );
