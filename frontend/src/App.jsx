@@ -15,8 +15,8 @@ function App() {
   const [currentRole, setCurrentRole] = useState('');
 
   // CEO login fields
-  const [ceoUsername, setCeoUsername] = useState('');
-  const [ceoPassword, setCeoPassword] = useState('');
+  const [ceoUsername, setCeoUsername] = useState('it@123');
+  const [ceoPassword, setCeoPassword] = useState('it@123');
   const [ceoLoginError, setCeoLoginError] = useState('');
 
   const [scores, setScores] = useState({});
@@ -91,6 +91,55 @@ function App() {
     });
     alert('Đã gửi thành công!');
     setView('login');
+  };
+
+  const exportToExcel = (dataList, filename) => {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    let headers = ["ID", "Họ Tên", "Khoa Phòng", "Trạng thái", "Ngày nộp", "Tổng điểm NV", "Tổng điểm CEO"];
+
+    // Build headers from categories dynamically
+    categories.forEach((cat, catIdx) => {
+      cat.items.forEach((_, itemIdx) => {
+        headers.push(`[NV] C${catIdx + 1}.${itemIdx + 1}`);
+        headers.push(`[CEO] C${catIdx + 1}.${itemIdx + 1}`);
+      });
+    });
+    csvContent += headers.join(",") + "\n";
+
+    dataList.forEach(ev => {
+      let statusTxt = ev.status === 'CEO_REVIEWED' ? 'Da duyet' : 'Cho duyet';
+      let submittedAt = ev.submitted_at ? new Date(ev.submitted_at).toLocaleString('vi-VN') : '';
+      
+      let totalNV = 0;
+      let totalCEO = 0;
+      let itemCols = [];
+      
+      categories.forEach((cat, catIdx) => {
+        cat.items.forEach((_, itemIdx) => {
+          const key = `${catIdx}_${itemIdx}`;
+          const nvScore = ev.scores && ev.scores[key] !== undefined ? ev.scores[key] : '';
+          const ceoScore = ev.ceo_scores && ev.ceo_scores[key] !== undefined ? ev.ceo_scores[key] : '';
+          
+          if (nvScore !== '') totalNV += Number(nvScore);
+          if (ceoScore !== '') totalCEO += Number(ceoScore);
+          
+          itemCols.push(`"${nvScore}"`);
+          itemCols.push(`"${ceoScore}"`);
+        });
+      });
+
+      let row = [`${ev.id}`, `"${ev.employee_name}"`, `"${ev.employee_role}"`, `"${statusTxt}"`, `"${submittedAt}"`, `"${totalNV}"`, `"${totalCEO}"`];
+      row = row.concat(itemCols);
+      csvContent += row.join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const submitCEOReview = async () => {
@@ -211,23 +260,9 @@ function App() {
             onChange={e => setSearchQuery(e.target.value)}
           />
           <button
-            onClick={() => {
-              let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-              csvContent += "ID,Họ Tên,Khoa Phòng,Trạng thái\n";
-              evaluations.forEach(ev => {
-                let statusTxt = ev.status === 'CEO_REVIEWED' ? 'Da duyet' : 'Cho duyet';
-                csvContent += `${ev.id},"${ev.employee_name}","${ev.employee_role}","${statusTxt}"\n`;
-              });
-              const encodedUri = encodeURI(csvContent);
-              const link = document.createElement("a");
-              link.setAttribute("href", encodedUri);
-              link.setAttribute("download", "DanhSachDanhGia.csv");
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
+            onClick={() => exportToExcel(evaluations, 'DanhSachDanhGia_ToanBo.csv')}
             style={{ padding: '0 1.5rem', background: '#2E7D32', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-          >📥 Xuất Excel (CSV)</button>
+          >📥 Xuất Web (Tất cả)</button>
         </div>
 
         <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
@@ -252,11 +287,20 @@ function App() {
                       {ev.status === 'CEO_REVIEWED' ? '✅ Đã duyệt' : '⏳ Chờ duyệt'}
                     </span>
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    <button
-                      onClick={() => { setSelectedEval(ev); setView('ceoreview'); }}
-                      style={{ padding: '0.4rem 1rem', background: '#c62828', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
-                    >Chấm điểm</button>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => {
+                          setSelectedEval(ev);
+                          setView('ceoreview');
+                        }}
+                        style={{ padding: '0.4rem 0.8rem', background: '#e63946', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                      >Xem & Duyệt</button>
+                      <button
+                        onClick={() => exportToExcel([ev], `DanhGia_${ev.employee_name.replace(/\s+/g, '')}.csv`)}
+                        style={{ padding: '0.4rem 0.8rem', background: '#555', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                      >Xuất Excel</button>
+                    </div>
                   </td>
                 </tr>
               ))}
