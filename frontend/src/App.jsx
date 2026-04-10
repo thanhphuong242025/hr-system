@@ -64,6 +64,22 @@ function App() {
 
   const submitEmployee = async () => {
     if (!currentUser || !currentDepartment) return alert('Vui lòng nhập đầy đủ họ tên và khoa phòng!');
+
+    // Check if any score is missing
+    let isMissingScore = false;
+    categories.forEach((cat, catIdx) => {
+      cat.items.forEach((_, itemIdx) => {
+        const key = `${catIdx}_${itemIdx}`;
+        if (scores[key] === undefined || scores[key] === null || scores[key] === '') {
+          isMissingScore = true;
+        }
+      });
+    });
+
+    if (isMissingScore) {
+      return alert('Vui lòng chấm điểm đầy đủ cho TẤT CẢ các tiêu chí (từ 0 đến 5)! Không được bỏ trống.');
+    }
+
     await fetch(`${API_URL}/evaluations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
