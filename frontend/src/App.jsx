@@ -16,6 +16,7 @@ export default function App() {
   const [positionType, setPositionType] = useState('DR');
   const [scores, setScores] = useState({});
   const [selfComment, setSelfComment] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
 
   // Dashboard & Review state
   const [evaluations, setEvaluations] = useState([]);
@@ -84,7 +85,10 @@ export default function App() {
         if (v === undefined || v === '') isMissing = true;
       });
     });
-    if (isMissing) return alert('Vui lòng chấm điểm đầy đủ cho TẤT CẢ tiêu chí!');
+    if (isMissing) {
+      setShowErrors(true);
+      return alert('Vui lòng chấm điểm đầy đủ cho TẤT CẢ tiêu chí!');
+    }
 
     try {
       await fetch(`${API_URL}/evaluations`, {
@@ -101,7 +105,7 @@ export default function App() {
       alert('Nộp phiếu thành công!');
       setView('login');
       // Reset form
-      setEmpName(''); setEmpRole(''); setScores({}); setSelfComment('');
+      setEmpName(''); setEmpRole(''); setScores({}); setSelfComment(''); setShowErrors(false);
     } catch (e) {
       alert('Lỗi gửi dữ liệu!');
     }
@@ -120,7 +124,10 @@ export default function App() {
         if (v === undefined || v === '') isMissing = true;
       });
     });
-    if (isMissing) return alert(`Vui lòng chấm điểm CỦA ${isCouncil ? 'HỘI ĐỒNG' : 'LÃNH ĐẠO'} đầy đủ!`);
+    if (isMissing) {
+      setShowErrors(true);
+      return alert(`Vui lòng chấm điểm CỦA ${isCouncil ? 'HỘI ĐỒNG' : 'LÃNH ĐẠO'} đầy đủ!`);
+    }
 
     const finalResult = calcGrade(scoreData, qs);
 
@@ -226,7 +233,15 @@ export default function App() {
       <div className="auth-card">
         <h1 className="auth-title">Đăng Nhập Quản Lý</h1>
         <p className="auth-subtitle">Dành cho Trưởng Khoa, Trưởng Phòng, Giám Đốc</p>
-        <form onSubmit={handleManagerLogin}>
+        <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginTop: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.85rem'}}>
+          <strong>Gợi ý Test Tài Khoản Quản Lý:</strong>
+          <ul style={{marginLeft: '1.5rem', marginTop: '0.5rem', color: 'var(--text-muted)'}}>
+            <li>Hội đồng / Giám đốc: <strong>ceo</strong> / <strong>ceo@2025</strong></li>
+            <li>Trưởng khoa: <strong>leader1</strong> / <strong>leader@2025</strong></li>
+            <li>Trưởng phòng: <strong>leader2</strong> / <strong>leader@2025</strong></li>
+          </ul>
+        </div>
+        <form onSubmit={handleManagerLogin} style={{marginTop: '1rem'}}>
           <div className="input-group">
             <label>Tài khoản</label>
             <input className="input-control" name="username" required />
@@ -311,14 +326,14 @@ export default function App() {
                           <td className="col-tt">{ii+1}</td>
                           <td>{item}</td>
                           <td className="col-score">
-                            <input className="score-input" type="number" min="0" max="5" 
+                            <input className={`score-input ${(!isReview && showErrors && (empV === undefined || empV === '')) ? 'invalid' : ''}`} type="number" min="0" max="5" 
                               value={empV !== undefined ? empV : ''} 
                               onChange={e => !isReview && handleScoreChange(ci, ii, e.target.value, 'scores')}
                               disabled={isReview} />
                           </td>
                           {(isLeader || isCouncil) && (
                             <td className="col-score">
-                              <input className={`score-input ${isLeader ? 'active-input' : ''}`} type="number" min="0" max="5"
+                              <input className={`score-input ${isLeader ? 'active-input' : ''} ${(isLeader && showErrors && (ldrV === undefined || ldrV === '')) ? 'invalid' : ''}`} type="number" min="0" max="5"
                                 value={ldrV !== undefined ? ldrV : ''}
                                 onChange={e => isLeader && handleScoreChange(ci, ii, e.target.value, 'leader_scores')}
                                 disabled={!isLeader} />
@@ -326,7 +341,7 @@ export default function App() {
                           )}
                           {isCouncil && (
                             <td className="col-score">
-                              <input className="score-input active-input" style={{borderColor:'var(--success)', color:'var(--success)'}} type="number" min="0" max="5"
+                              <input className={`score-input active-input ${(isCouncil && showErrors && (cncV === undefined || cncV === '')) ? 'invalid' : ''}`} style={{borderColor:'var(--success)', color:'var(--success)'}} type="number" min="0" max="5"
                                 value={cncV !== undefined ? cncV : ''}
                                 onChange={e => isCouncil && handleScoreChange(ci, ii, e.target.value, 'council_scores')} />
                             </td>

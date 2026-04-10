@@ -42,7 +42,28 @@ class DBWrapper {
                 final_grade TEXT DEFAULT '',
                 status TEXT DEFAULT 'SUBMITTED'
             );
-        `).catch(console.error);
+        `).then(() => {
+            // Upgrade existing table if needed
+            const newCols = [
+                "ALTER TABLE evaluations ADD COLUMN position_type TEXT DEFAULT 'DR'",
+                "ALTER TABLE evaluations ADD COLUMN leader_scores TEXT DEFAULT '{}'",
+                "ALTER TABLE evaluations ADD COLUMN leader_notes TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN leader_reviewed_by TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN leader_reviewed_at TIMESTAMP",
+                "ALTER TABLE evaluations ADD COLUMN council_scores TEXT DEFAULT '{}'",
+                "ALTER TABLE evaluations ADD COLUMN council_notes TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN council_reviewed_by TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN council_reviewed_at TIMESTAMP",
+                "ALTER TABLE evaluations ADD COLUMN strengths TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN weaknesses TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN skills_needed TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN self_comment TEXT DEFAULT ''",
+                "ALTER TABLE evaluations ADD COLUMN final_grade TEXT DEFAULT ''"
+            ];
+            newCols.forEach(sql => {
+                this.pool.query(sql).catch(() => {}); // ignore duplicate column errors
+            });
+        }).catch(console.error);
     }
 
     initSqlite() {
