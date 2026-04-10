@@ -186,30 +186,72 @@ export default function App() {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('DanhGia');
     sheet.columns = [
-      { width: 5 }, { width: 60 }, { width: 12 }, { width: 12 }, { width: 12 }
+      { width: 5 }, { width: 60 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 15 }
     ];
 
-    sheet.mergeCells('A1:E1');
-    sheet.getCell('A1').value = `PHIẾU ĐÁNH GIÁ NĂNG LỰC NHÂN SỰ: ${ROLE_TYPES[ev.position_type].label.toUpperCase()}`;
-    sheet.getCell('A1').font = { bold: true, size: 14 };
+    // Row 1
+    sheet.mergeCells('A1:F1');
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = `PHIẾU ĐÁNH GIÁ NĂNG LỰC NHÂN SỰ CÁ NHÂN: ${ROLE_TYPES[ev.position_type].label.toUpperCase()}`;
+    titleCell.font = { bold: true, size: 14 };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-    sheet.mergeCells('A3:B3'); sheet.getCell('A3').value = `HỌ TÊN: ${ev.employee_name}`;
-    sheet.mergeCells('C3:D3'); sheet.getCell('C3').value = `VỊ TRÍ: ${ev.employee_role}`;
+    // Row 2
+    sheet.mergeCells('A2:F2');
+    const yearCell = sheet.getCell('A2');
+    yearCell.value = `NĂM ${new Date().getFullYear()}`;
+    yearCell.font = { bold: true, size: 12 };
+    yearCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-    const hr = sheet.addRow(['TT', 'NỘI DUNG ĐÁNH GIÁ', 'TỰ CHẤM', 'L.ĐẠO', 'H.ĐỒNG']);
-    hr.font = { bold: true }; hr.alignment = { horizontal: 'center' };
+    // Row 3
+    sheet.mergeCells('A3:B3');
+    sheet.getCell('A3').value = `HỌ TÊN: ${ev.employee_name}`;
+    sheet.getCell('A3').font = { bold: true };
+    
+    sheet.mergeCells('C3:D3');
+    sheet.getCell('C3').value = `VỊ TRÍ CÔNG VIỆC: ${ev.employee_role}`;
+    sheet.getCell('C3').font = { bold: true };
+
+    sheet.mergeCells('E3:F3');
+    const submitDate = ev.submitted_at || new Date().toISOString();
+    sheet.getCell('E3').value = `NGÀY ĐÁNH GIÁ: ${new Date(submitDate).toLocaleDateString('vi-VN')}`;
+    sheet.getCell('E3').font = { bold: true };
+
+    // Row 4: Header
+    const hr = sheet.addRow(['TT', 'CÁC NỘI DUNG ĐÁNH GIÁ', 'TỰ CHẤM', 'CEO', 'HỘI ĐỒNG', 'GHI CHÚ']);
+    hr.font = { bold: true };
+    hr.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    hr.eachCell(cell => {
+      cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+    });
 
     qs.forEach((cat, ci) => {
-      const cr = sheet.addRow(['', cat.title, '', '', '']);
-      cr.font = { bold: true }; cr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+      const cr = sheet.addRow(['', cat.title, '', '', '', '']);
+      cr.font = { bold: true };
+      cr.eachCell(cell => {
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+
       cat.items.forEach((item, ii) => {
         const key = `${ci}_${ii}`;
-        sheet.addRow([
+        const row = sheet.addRow([
           ii + 1, item,
           (ev.scores || {})[key] || '',
           (ev.leader_scores || {})[key] || '',
-          (ev.council_scores || ev.ceo_scores || {})[key] || ''
+          (ev.council_scores || ev.ceo_scores || {})[key] || '',
+          '' // Ghi chú column
         ]);
+        
+        row.getCell(2).alignment = { wrapText: true, vertical: 'middle' };
+        row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        row.eachCell(cell => {
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+        });
       });
     });
 
