@@ -301,13 +301,14 @@ body {
 }
 
 .score-input {
-  width: 60px;
+  width: 70px;
+  height: 48px;
   text-align: center;
   padding: 0.5rem;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   outline: none;
   transition: all 0.2s;
   background: #f8fafc;
@@ -315,13 +316,14 @@ body {
 
 .score-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
   background: #fff;
 }
 
 .score-input:disabled {
   background: #e2e8f0;
-  color: #64748b;
+  color: #94a3b8;
+  border: 1px dashed var(--border);
   cursor: not-allowed;
 }
 

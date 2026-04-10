@@ -75,6 +75,25 @@ export default function App() {
     }
   };
 
+  // Keyboard navigation for scores
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('.score-input:not([disabled])'));
+      const index = inputs.indexOf(e.target);
+      if (index > -1 && index + 1 < inputs.length) {
+        inputs[index + 1].focus();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('.score-input:not([disabled])'));
+      const index = inputs.indexOf(e.target);
+      if (index > 0) {
+        inputs[index - 1].focus();
+      }
+    }
+  };
+
   const submitEmployee = async () => {
     if (!empName || !empRole) return alert('Vui lòng nhập họ tên và khoa phòng!');
     const qs = QUESTIONS[positionType];
@@ -201,10 +220,15 @@ export default function App() {
   // 1. Employee Login
   if (view === 'login') return (
     <div className="auth-container">
-      <button className="auth-manager-btn" onClick={() => setView('manager-login')}>🔐 Đăng nhập Quản lý</button>
+      <button className="auth-manager-btn" onClick={() => setView('manager-login')}>🔐 Đăng nhập Quản lý (ceo/leader)</button>
       <div className="auth-card">
         <h1 className="auth-title">Hệ Thống Đánh Giá 2025</h1>
         <p className="auth-subtitle">Phiếu Tự Chấm Cho Nhân Viên Bệnh Viện</p>
+        <div style={{background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid #e2e8f0', fontSize: '0.85rem'}}>
+          <strong>Test Quyền Quản Lý:</strong> Bấm [Đăng nhập Quản lý] góc trên-phải.<br />
+          - CEO/Hội đồng: <strong>ceo</strong> - Mk: <strong>ceo@2025</strong><br />
+          - Trưởng Khoa: <strong>leader1</strong> - Mk: <strong>leader@2025</strong>
+        </div>
         <div className="input-group">
           <label>Họ và tên</label>
           <input className="input-control" value={empName} onChange={e=>setEmpName(e.target.value)} placeholder="Nguyễn Văn A" />
@@ -329,6 +353,7 @@ export default function App() {
                             <input className={`score-input ${(!isReview && showErrors && (empV === undefined || empV === '')) ? 'invalid' : ''}`} type="number" min="0" max="5" 
                               value={empV !== undefined ? empV : ''} 
                               onChange={e => !isReview && handleScoreChange(ci, ii, e.target.value, 'scores')}
+                              onKeyDown={handleInputKeyDown}
                               disabled={isReview} />
                           </td>
                           {(isLeader || isCouncil) && (
@@ -336,6 +361,7 @@ export default function App() {
                               <input className={`score-input ${isLeader ? 'active-input' : ''} ${(isLeader && showErrors && (ldrV === undefined || ldrV === '')) ? 'invalid' : ''}`} type="number" min="0" max="5"
                                 value={ldrV !== undefined ? ldrV : ''}
                                 onChange={e => isLeader && handleScoreChange(ci, ii, e.target.value, 'leader_scores')}
+                                onKeyDown={handleInputKeyDown}
                                 disabled={!isLeader} />
                             </td>
                           )}
@@ -343,7 +369,8 @@ export default function App() {
                             <td className="col-score">
                               <input className={`score-input active-input ${(isCouncil && showErrors && (cncV === undefined || cncV === '')) ? 'invalid' : ''}`} style={{borderColor:'var(--success)', color:'var(--success)'}} type="number" min="0" max="5"
                                 value={cncV !== undefined ? cncV : ''}
-                                onChange={e => isCouncil && handleScoreChange(ci, ii, e.target.value, 'council_scores')} />
+                                onChange={e => isCouncil && handleScoreChange(ci, ii, e.target.value, 'council_scores')}
+                                onKeyDown={handleInputKeyDown} />
                             </td>
                           )}
                         </tr>
