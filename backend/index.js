@@ -7,28 +7,50 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Submit a new evaluation
+// API Login (Simple hardcoded for now, should use DB in production)
+const MANAGER_ACCOUNTS = [
+    { username: 'ceo', password: 'ceo@2025', role: 'council', fullName: 'Ban Giám Đốc / Hội Đồng', department: 'Ban Giám Đốc' },
+    { username: 'leader1', password: 'leader@2025', role: 'leader', fullName: 'Lãnh Đạo Khoa', department: 'Khoa Lâm Sàng' },
+    { username: 'leader2', password: 'leader@2025', role: 'leader', fullName: 'Lãnh Đạo Phòng', department: 'Phòng Ban Hành Chính' }
+];
+
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = MANAGER_ACCOUNTS.find(u => u.username === username && u.password === password);
+    if (user) {
+        // In real app, return JWT. Here we return user details.
+        const { password, ...userInfo } = user;
+        res.json({ success: true, user: userInfo });
+    } else {
+        res.status(401).json({ success: false, message: 'Sai tài khoản hoặc mật khẩu' });
+    }
+});
+
+// Submit a new evaluation (Employee)
 app.post('/api/evaluations', async (req, res) => {
-    const { employee_name, employee_role, scores } = req.body;
+    const { employee_name, employee_role, position_type, scores, self_comment } = req.body;
     try {
         const id = await db.runInsert(
-            "INSERT INTO evaluations (employee_name, employee_role, scores) VALUES (?, ?, ?)",
-            [employee_name, employee_role, JSON.stringify(scores)]
+            `INSERT INTO evaluations (
+                employee_name, employee_role, position_type, scores, self_comment, status
+            ) VALUES (?, ?, ?, ?, ?, 'SUBMITTED')`,
+            [employee_name, employee_role, position_type, JSON.stringify(scores || {}), self_comment || '']
         );
-        res.json({ id });
+        res.json({ success: true, id });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Get all evaluations
+// Get all evaluations (For Leaders and Council)
 app.get('/api/evaluations', async (req, res) => {
     try {
         const rows = await db.all("SELECT * FROM evaluations ORDER BY id DESC");
         res.json(rows.map(r => ({
             ...r,
             scores: JSON.parse(r.scores || "{}"),
-            ceo_scores: JSON.parse(r.ceo_scores || "{}"),
+            leader_scores: JSON.parse(r.leader_scores || "{}"),
+            ceo_scores: JSON.parse(r.ceo_scores || "{}"), // legacy
             council_scores: JSON.parse(r.council_scores || "{}")
         })));
     } catch (err) {
@@ -36,36 +58,36 @@ app.get('/api/evaluations', async (req, res) => {
     }
 });
 
-// Update an evaluation
+// Update an evaluation (Leader or Council review)
 app.put('/api/evaluations/:id', async (req, res) => {
     const { id } = req.params;
-    const { ceo_scores, council_scores, notes, status } = req.body;
-    let query = "UPDATE evaluations SET ";
-    let updates = [];
-    let params = [];
-    if (ceo_scores !== undefined) {
-        updates.push("ceo_scores = ?");
-        params.push(JSON.stringify(ceo_scores));
-    }
-    if (council_scores !== undefined) {
-        updates.push("council_scores = ?");
-        params.push(JSON.stringify(council_scores));
-    }
-    if (notes !== undefined) {
-        updates.push("notes = ?");
-        params.push(notes);
-    }
-    if (status !== undefined) {
-        updates.push("status = ?");
-        params.push(status);
-    }
-    if (updates.length === 0) return res.json({ success: true, changes: 0 });
+    const updates = req.body;
     
-    query += updates.join(", ") + " WHERE id = ?";
-    params.push(id);
+    let queryArgs = [];
+    let querySets = [];
+
+    const allowedFields = [
+        'leader_scores', 'leader_notes', 'leader_reviewed_by', 'leader_reviewed_at',
+        'council_scores', 'council_notes', 'council_reviewed_by', 'council_reviewed_at',
+        'strengths', 'weaknesses', 'skills_needed', 'final_grade', 'status'
+    ];
+
+    allowedFields.forEach(field => {
+        if (updates[field] !== undefined) {
+            querySets.push(`${field} = ?`);
+            let val = updates[field];
+            if (field.endsWith('_scores')) val = JSON.stringify(val);
+            queryArgs.push(val);
+        }
+    });
+
+    if (querySets.length === 0) return res.json({ success: true, changes: 0 });
+
+    const query = `UPDATE evaluations SET ${querySets.join(", ")} WHERE id = ?`;
+    queryArgs.push(id);
 
     try {
-        const changes = await db.runUpdate(query, params);
+        const changes = await db.runUpdate(query, queryArgs);
         res.json({ success: true, changes });
     } catch (err) {
         res.status(500).json({ error: err.message });
