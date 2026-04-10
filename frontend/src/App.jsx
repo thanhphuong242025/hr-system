@@ -108,27 +108,35 @@ function App() {
       <body>
     `;
 
-    dataList.forEach(ev => {
-      let statusTxt = ev.status === 'CEO_REVIEWED' ? 'Đã duyệt' : 'Chờ duyệt';
-      let submittedAt = ev.submitted_at ? new Date(ev.submitted_at).toLocaleString('vi-VN') : '';
+    dataList.forEach((ev, idx) => {
+      let submittedAt = ev.submitted_at ? new Date(ev.submitted_at).toLocaleDateString('vi-VN') : '';
       htmlContent += `
-        <h2>Họ tên: ${ev.employee_name} - Khoa phòng: ${ev.employee_role} - Trạng thái: ${statusTxt} - Nộp lúc: ${submittedAt}</h2>
         <table>
-          <thead>
-            <tr>
-              <th>TT</th>
-              <th>Các nội dung đánh giá</th>
-              <th>Tự chấm</th>
-              <th>CEO</th>
-            </tr>
-          </thead>
-          <tbody>
+          <tr>
+            <td colspan="6" align="center" style="font-weight: bold; font-size: 16pt;">PHIẾU ĐÁNH GIÁ NĂNG LỰC NHÂN SỰ CÁ NHÂN</td>
+          </tr>
+          <tr>
+            <td colspan="6" align="center" style="font-weight: bold; font-size: 13pt;">NĂM 2025</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="font-weight: bold;">HỌ TÊN: ${ev.employee_name}</td>
+            <td colspan="2" style="font-weight: bold;">VỊ TRÍ CÔNG VIỆC: ${ev.employee_role}</td>
+            <td colspan="2" style="font-weight: bold;">NGÀY ĐÁNH GIÁ: ${submittedAt}</td>
+          </tr>
+          <tr>
+            <th>TT</th>
+            <th style="width: 500px;">CÁC NỘI DUNG ĐÁNH GIÁ</th>
+            <th>TỰ CHẤM</th>
+            <th>CEO</th>
+            <th>HỘI ĐỒNG</th>
+            <th>GHI CHÚ</th>
+          </tr>
       `;
       categories.forEach((cat, catIdx) => {
         htmlContent += `
           <tr class="cat-title">
-            <td>-</td>
-            <td colspan="3">${cat.title}</td>
+            <td></td>
+            <td colspan="5">${cat.title}</td>
           </tr>
         `;
         cat.items.forEach((item, itemIdx) => {
@@ -137,18 +145,19 @@ function App() {
           const ceoScore = ev.ceo_scores && ev.ceo_scores[key] !== undefined ? ev.ceo_scores[key] : '';
           htmlContent += `
             <tr>
-              <td align="center">${itemIdx + 1}</td>
+              <td align="center" style="vertical-align: top;">${itemIdx + 1}</td>
               <td>${item}</td>
-              <td align="center">${nvScore}</td>
-              <td align="center">${ceoScore}</td>
+              <td align="center" style="vertical-align: top;">${nvScore}</td>
+              <td align="center" style="vertical-align: top;">${ceoScore}</td>
+              <td></td>
+              <td></td>
             </tr>
           `;
         });
       });
       htmlContent += `
-          </tbody>
         </table>
-        <br/>
+        <br/><br/>
       `;
     });
 
