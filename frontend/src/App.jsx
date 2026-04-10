@@ -5,8 +5,7 @@ const API_URL = '/api';
 
 // CEO credentials (simple hardcoded auth)
 const CEO_ACCOUNTS = [
-  { username: 'giamdoc', password: 'gd@2025' },
-  { username: 'admin', password: 'admin123' },
+  { username: 'it@123', password: 'it@123' }
 ];
 
 function App() {

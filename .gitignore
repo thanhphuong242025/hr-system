@@ -1,6 +1,5 @@
 node_modules/
 *.sqlite
 .env
-dist/
 .DS_Store
 cloudflared.exe
