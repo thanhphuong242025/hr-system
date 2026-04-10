@@ -74,19 +74,22 @@ function App() {
   const submitEmployee = async () => {
     if (!currentUser || !currentDepartment) return alert('Vui lòng nhập đầy đủ họ tên và khoa phòng!');
 
-    // Check if any score is missing
     let isMissingScore = false;
+    let hasInvalidScore = false;
     categories.forEach((cat, catIdx) => {
       cat.items.forEach((_, itemIdx) => {
         const key = `${catIdx}_${itemIdx}`;
-        if (scores[key] === undefined || scores[key] === null || scores[key] === '') {
+        const val = scores[key];
+        if (val === undefined || val === null || val === '') {
           isMissingScore = true;
+        } else if (Number(val) < 0 || Number(val) > 5) {
+          hasInvalidScore = true;
         }
       });
     });
 
-    if (isMissingScore) {
-      return alert('Vui lòng chấm điểm đầy đủ cho TẤT CẢ các tiêu chí (từ 0 đến 5)! Không được bỏ trống.');
+    if (isMissingScore || hasInvalidScore) {
+      return alert('Vui lòng chấm điểm đầy đủ cho TẤT CẢ các tiêu chí (từ 0 đến 5)! Không được bỏ trống hoặc nhập sai phạm vi.');
     }
 
     await fetch(`${API_URL}/evaluations`, {
@@ -459,15 +462,19 @@ function App() {
                     const key = `${catIdx}_${itemIdx}`;
                     const empScore = isCEO ? dataObj.scores[key] : scores[key];
                     const ceoScore = isCEO ? dataObj.ceo_scores[key] : '';
+                    
+                    const isEmpEmptyOrInvalid = empScore === undefined || empScore === null || empScore === '' || Number(empScore) < 0 || Number(empScore) > 5;
+                    const isCeoEmptyOrInvalid = isCEO && (ceoScore === undefined || ceoScore === null || ceoScore === '' || Number(ceoScore) < 0 || Number(ceoScore) > 5);
+
                     return (
                       <tr key={key} style={{ background: itemIdx % 2 === 0 ? '#fff' : '#f9f9f9' }}>
                         <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #ddd' }}>{itemIdx + 1}</td>
                         <td style={{ padding: '0.5rem', border: '1px solid #ddd' }}>{item}</td>
                         <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #ddd' }}>
-                          <input className="score-input" type="number" min="0" max="5" value={empScore || ''} onChange={e => !isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'scores')} onKeyDown={handleInputKeyDown} disabled={isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px', background: isCEO ? '#f0f0f0' : '#fff' }} placeholder="..." />
+                          <input className="score-input" type="number" min="0" max="5" value={empScore || ''} onChange={e => !isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'scores')} onKeyDown={handleInputKeyDown} disabled={isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: !isCEO && isEmpEmptyOrInvalid ? '2px solid red' : '1px solid #ccc', borderRadius: '4px', background: !isCEO && isEmpEmptyOrInvalid ? '#ffe6e6' : (isCEO ? '#f0f0f0' : '#fff'), color: isCEO ? '#333' : '#000' }} placeholder="..." />
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'center', border: '1px solid #ddd', background: '#ffeef0' }}>
-                          <input className="score-input" type="number" min="0" max="5" value={ceoScore || ''} onChange={e => isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'ceo_scores')} onKeyDown={handleInputKeyDown} disabled={!isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: '1px solid #f99', borderRadius: '4px', fontWeight: 'bold', color: '#c62828', background: !isCEO ? '#eee' : '#fff' }} placeholder="GĐ" />
+                          <input className="score-input" type="number" min="0" max="5" value={ceoScore || ''} onChange={e => isCEO && handleScoreChange(catIdx, itemIdx, e.target.value, 'ceo_scores')} onKeyDown={handleInputKeyDown} disabled={!isCEO} style={{ width: '60px', textAlign: 'center', padding: '0.25rem', border: isCEO && isCeoEmptyOrInvalid ? '2px solid red' : '1px solid #f99', borderRadius: '4px', fontWeight: 'bold', color: '#c62828', background: isCEO && isCeoEmptyOrInvalid ? '#ffe6e6' : (!isCEO ? '#eee' : '#fff') }} placeholder="GĐ" />
                         </td>
                       </tr>
                     );
