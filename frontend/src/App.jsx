@@ -54,6 +54,13 @@ function App() {
   };
 
   const handleScoreChange = (catIdx, itemIdx, val, type = 'scores') => {
+    if (val !== '') {
+      const num = Number(val);
+      if (isNaN(num) || num < 0 || num > 5) {
+        alert('Chỉ được nhập số từ 0 đến 5!');
+        return;
+      }
+    }
     const key = `${catIdx}_${itemIdx}`;
     if (type === 'scores') setScores({ ...scores, [key]: val });
     else if (type === 'ceo_scores') {
@@ -204,6 +211,24 @@ function App() {
   };
 
   const submitCEOReview = async () => {
+    let isMissingScore = false;
+    let hasInvalidScore = false;
+    categories.forEach((cat, catIdx) => {
+      cat.items.forEach((_, itemIdx) => {
+        const key = `${catIdx}_${itemIdx}`;
+        const val = selectedEval.ceo_scores && selectedEval.ceo_scores[key];
+        if (val === undefined || val === null || val === '') {
+          isMissingScore = true;
+        } else if (Number(val) < 0 || Number(val) > 5) {
+          hasInvalidScore = true;
+        }
+      });
+    });
+
+    if (isMissingScore || hasInvalidScore) {
+      return alert('Vui lòng chấm điểm CỦA CEO đầy đủ cho TẤT CẢ các tiêu chí (từ 0 đến 5)! Không được bỏ trống và không được nhập sai phạm vi.');
+    }
+
     await fetch(`${API_URL}/evaluations/${selectedEval.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
