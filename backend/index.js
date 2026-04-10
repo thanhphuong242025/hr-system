@@ -8,31 +8,36 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Submit a new evaluation
-app.post('/api/evaluations', (req, res) => {
+app.post('/api/evaluations', async (req, res) => {
     const { employee_name, employee_role, scores } = req.body;
-    const stmt = db.prepare("INSERT INTO evaluations (employee_name, employee_role, scores) VALUES (?, ?, ?)");
-    stmt.run(employee_name, employee_role, JSON.stringify(scores), function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ id: this.lastID });
-    });
-    stmt.finalize();
+    try {
+        const id = await db.runInsert(
+            "INSERT INTO evaluations (employee_name, employee_role, scores) VALUES (?, ?, ?)",
+            [employee_name, employee_role, JSON.stringify(scores)]
+        );
+        res.json({ id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get all evaluations
-app.get('/api/evaluations', (req, res) => {
-    db.all("SELECT * FROM evaluations ORDER BY id DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/evaluations', async (req, res) => {
+    try {
+        const rows = await db.all("SELECT * FROM evaluations ORDER BY id DESC");
         res.json(rows.map(r => ({
             ...r,
             scores: JSON.parse(r.scores || "{}"),
             ceo_scores: JSON.parse(r.ceo_scores || "{}"),
             council_scores: JSON.parse(r.council_scores || "{}")
         })));
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Update an evaluation
-app.put('/api/evaluations/:id', (req, res) => {
+app.put('/api/evaluations/:id', async (req, res) => {
     const { id } = req.params;
     const { ceo_scores, council_scores, notes, status } = req.body;
     let query = "UPDATE evaluations SET ";
@@ -59,10 +64,12 @@ app.put('/api/evaluations/:id', (req, res) => {
     query += updates.join(", ") + " WHERE id = ?";
     params.push(id);
 
-    db.run(query, params, function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, changes: this.changes });
-    });
+    try {
+        const changes = await db.runUpdate(query, params);
+        res.json({ success: true, changes });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 const path = require('path');

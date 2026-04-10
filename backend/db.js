@@ -1,27 +1,103 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const dataDir = process.env.DATA_DIR || __dirname;
-const db = new sqlite3.Database(path.join(dataDir, 'database.sqlite'));
+const isPg = !!process.env.DATABASE_URL;
 
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        role TEXT,
-        department TEXT
-    )`);
+class DBWrapper {
+    constructor() {
+        if (isPg) {
+            console.log("Using PostgreSQL Database");
+            const { Pool } = require('pg');
+            this.pool = new Pool({
+                connectionString: process.env.DATABASE_URL
+            });
+            this.initPg();
+        } else {
+            console.log("Using SQLite Database");
+            const sqlite3 = require('sqlite3').verbose();
+            const path = require('path');
+            const dataDir = process.env.DATA_DIR || __dirname;
+            this.sqliteDb = new sqlite3.Database(path.join(dataDir, 'database.sqlite'));
+            this.initSqlite();
+        }
+    }
 
-    db.run(`CREATE TABLE IF NOT EXISTS evaluations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_name TEXT,
-        employee_role TEXT,
-        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        scores TEXT, -- JSON string of answers
-        ceo_scores TEXT, -- JSON string of ceo answers
-        council_scores TEXT, -- JSON string of council answers
-        notes TEXT, -- CEO/Council notes
-        status TEXT DEFAULT 'SUBMITTED' -- SUBMITTED, CEO_REVIEWED, COUNCIL_REVIEWED
-    )`);
-});
+    initPg() {
+        this.pool.query(`
+            CREATE TABLE IF NOT EXISTS evaluations (
+                id SERIAL PRIMARY KEY,
+                employee_name TEXT,
+                employee_role TEXT,
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                scores TEXT,
+                ceo_scores TEXT,
+                council_scores TEXT,
+                notes TEXT,
+                status TEXT DEFAULT 'SUBMITTED'
+            );
+        `).catch(console.error);
+    }
 
-module.exports = db;
+    initSqlite() {
+        this.sqliteDb.serialize(() => {
+            this.sqliteDb.run(`CREATE TABLE IF NOT EXISTS evaluations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_name TEXT,
+                employee_role TEXT,
+                submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                scores TEXT,
+                ceo_scores TEXT,
+                council_scores TEXT,
+                notes TEXT,
+                status TEXT DEFAULT 'SUBMITTED'
+            )`);
+        });
+    }
+
+    async runInsert(query, params) {
+        if (isPg) {
+            let i = 1;
+            const pgQuery = query.replace(/\?/g, () => `$${i++}`);
+            const result = await this.pool.query(pgQuery + ' RETURNING id', params);
+            return result.rows[0].id; // Return the new ID
+        } else {
+            return new Promise((resolve, reject) => {
+                this.sqliteDb.run(query, params, function(err) {
+                    if (err) reject(err);
+                    else resolve(this.lastID);
+                });
+            });
+        }
+    }
+
+    async runUpdate(query, params) {
+        if (isPg) {
+            let i = 1;
+            const pgQuery = query.replace(/\?/g, () => `$${i++}`);
+            const result = await this.pool.query(pgQuery, params);
+            return result.rowCount; // Return number of changes
+        } else {
+            return new Promise((resolve, reject) => {
+                this.sqliteDb.run(query, params, function(err) {
+                    if (err) reject(err);
+                    else resolve(this.changes);
+                });
+            });
+        }
+    }
+
+    async all(query, params = []) {
+        if (isPg) {
+            let i = 1;
+            const pgQuery = query.replace(/\?/g, () => `$${i++}`);
+            const result = await this.pool.query(pgQuery, params);
+            return result.rows;
+        } else {
+            return new Promise((resolve, reject) => {
+                this.sqliteDb.all(query, params, (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+        }
+    }
+}
+
+module.exports = new DBWrapper();

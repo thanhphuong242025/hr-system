@@ -185,15 +185,33 @@ function App() {
           >Đăng xuất</button>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ marginBottom: '1rem' }}>
+        {/* Search Bar & Export */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <input
             type="text"
             placeholder="🔍 Tìm theo tên hoặc khoa phòng..."
-            style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box', outline: 'none' }}
+            style={{ flex: 1, padding: '0.75rem 1rem', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box', outline: 'none' }}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
+          <button
+            onClick={() => {
+              let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+              csvContent += "ID,Họ Tên,Khoa Phòng,Trạng thái\n";
+              evaluations.forEach(ev => {
+                let statusTxt = ev.status === 'CEO_REVIEWED' ? 'Da duyet' : 'Cho duyet';
+                csvContent += `${ev.id},"${ev.employee_name}","${ev.employee_role}","${statusTxt}"\n`;
+              });
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", "DanhSachDanhGia.csv");
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            style={{ padding: '0 1.5rem', background: '#2E7D32', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+          >📥 Xuất Excel (CSV)</button>
         </div>
 
         <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
