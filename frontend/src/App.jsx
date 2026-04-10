@@ -129,16 +129,16 @@ function App() {
 
   // ── MAIN LOGIN PAGE ─────────────────────────────────────────────
   if (view === 'login') return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f0f4f8', padding: '1rem' }}>
-      <div style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', maxWidth: '440px', width: '100%' }}>
-        {/* CEO Login Button - TOP */}
-        <div style={{ marginBottom: '1.5rem', textAlign: 'right' }}>
-          <button
-            onClick={() => setView('ceologin')}
-            style={{ padding: '0.4rem 1rem', background: '#e63946', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}
-          >🔐 Đăng nhập Giám Đốc</button>
-        </div>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f0f4f8', padding: '1rem' }}>
+      {/* CEO Login Button - ABSOLUTE TOP RIGHT */}
+      <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+        <button
+          onClick={() => setView('ceologin')}
+          style={{ padding: '0.5rem 1rem', background: '#e63946', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 2px 8px rgba(230,57,70,0.4)' }}
+        >🔐 Đăng nhập Giám Đốc</button>
+      </div>
 
+      <div style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', maxWidth: '440px', width: '100%' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1d3557', textAlign: 'center', marginBottom: '0.5rem' }}>HỆ THỐNG ĐÁNH GIÁ 2025</h1>
         <p style={{ color: '#666', textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Phiếu tự đánh giá dành cho nhân viên</p>
 
