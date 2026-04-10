@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { categories } from './questions';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 const API_URL = '/api';
 
@@ -93,85 +95,84 @@ function App() {
     setView('login');
   };
 
-  const exportToExcelFormat = (dataList, filename) => {
-    let htmlContent = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-      <style>
-        table { border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #000; padding: 5px; }
-        th { background: #1d3557; color: #fff; }
-        .cat-title { background: #e8eaf6; font-weight: bold; }
-      </style>
-      </head>
-      <body>
-    `;
+  const exportToExcelFormat = async (dataList, filename) => {
+    const workbook = new ExcelJS.Workbook();
 
     dataList.forEach((ev, idx) => {
+      let sheetName = ev.employee_name.replace(/[\\/*?:[\]]/g, '').substring(0, 30) || 'Sheet';
+      if (dataList.length > 1) sheetName = `${idx + 1}. ${sheetName}`;
+      const sheet = workbook.addWorksheet(sheetName);
+
+      sheet.columns = [
+        { width: 5 },
+        { width: 70 },
+        { width: 12 },
+        { width: 12 },
+        { width: 12 },
+        { width: 15 }
+      ];
+
       let submittedAt = ev.submitted_at ? new Date(ev.submitted_at).toLocaleDateString('vi-VN') : '';
-      htmlContent += `
-        <table>
-          <tr>
-            <td colspan="6" align="center" style="font-weight: bold; font-size: 16pt;">PHIẾU ĐÁNH GIÁ NĂNG LỰC NHÂN SỰ CÁ NHÂN</td>
-          </tr>
-          <tr>
-            <td colspan="6" align="center" style="font-weight: bold; font-size: 13pt;">NĂM 2025</td>
-          </tr>
-          <tr>
-            <td colspan="2" style="font-weight: bold;">HỌ TÊN: ${ev.employee_name}</td>
-            <td colspan="2" style="font-weight: bold;">VỊ TRÍ CÔNG VIỆC: ${ev.employee_role}</td>
-            <td colspan="2" style="font-weight: bold;">NGÀY ĐÁNH GIÁ: ${submittedAt}</td>
-          </tr>
-          <tr>
-            <th>TT</th>
-            <th style="width: 500px;">CÁC NỘI DUNG ĐÁNH GIÁ</th>
-            <th>TỰ CHẤM</th>
-            <th>CEO</th>
-            <th>HỘI ĐỒNG</th>
-            <th>GHI CHÚ</th>
-          </tr>
-      `;
+
+      sheet.mergeCells('A1:F1');
+      sheet.getCell('A1').value = 'PHIẾU ĐÁNH GIÁ NĂNG LỰC NHÂN SỰ CÁ NHÂN';
+      sheet.getCell('A1').font = { bold: true, size: 14 };
+      sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+      sheet.mergeCells('A2:F2');
+      sheet.getCell('A2').value = 'NĂM 2025';
+      sheet.getCell('A2').font = { bold: true, size: 12 };
+      sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle' };
+
+      sheet.mergeCells('A3:B3');
+      sheet.getCell('A3').value = `HỌ TÊN: ${ev.employee_name}`;
+      sheet.getCell('A3').font = { bold: true };
+      
+      sheet.mergeCells('C3:D3');
+      sheet.getCell('C3').value = `VỊ TRÍ CÔNG VIỆC: ${ev.employee_role}`;
+      sheet.getCell('C3').font = { bold: true };
+
+      sheet.mergeCells('E3:F3');
+      sheet.getCell('E3').value = `NGÀY ĐÁNH GIÁ: ${submittedAt}`;
+      sheet.getCell('E3').font = { bold: true };
+
+      const headerRow = sheet.addRow(['TT', 'CÁC NỘI DUNG ĐÁNH GIÁ', 'TỰ CHẤM', 'CEO', 'HỘI ĐỒNG', 'GHI CHÚ']);
+      headerRow.eachCell(cell => {
+        cell.font = { bold: true };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+      });
+
       categories.forEach((cat, catIdx) => {
-        htmlContent += `
-          <tr class="cat-title">
-            <td></td>
-            <td colspan="5">${cat.title}</td>
-          </tr>
-        `;
+        const catRow = sheet.addRow(['', cat.title, '', '', '', '']);
+        sheet.mergeCells(`B${catRow.number}:F${catRow.number}`);
+        catRow.getCell(2).font = { bold: true };
+        catRow.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+        catRow.eachCell(cell => {
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+        });
+
         cat.items.forEach((item, itemIdx) => {
           const key = `${catIdx}_${itemIdx}`;
           const nvScore = ev.scores && ev.scores[key] !== undefined ? ev.scores[key] : '';
           const ceoScore = ev.ceo_scores && ev.ceo_scores[key] !== undefined ? ev.ceo_scores[key] : '';
-          htmlContent += `
-            <tr>
-              <td align="center" style="vertical-align: top;">${itemIdx + 1}</td>
-              <td>${item}</td>
-              <td align="center" style="vertical-align: top;">${nvScore}</td>
-              <td align="center" style="vertical-align: top;">${ceoScore}</td>
-              <td></td>
-              <td></td>
-            </tr>
-          `;
+          const dataRow = sheet.addRow([itemIdx + 1, item, nvScore, ceoScore, '', '']);
+          
+          dataRow.getCell(1).alignment = { horizontal: 'center', vertical: 'top' };
+          dataRow.getCell(2).alignment = { wrapText: true, vertical: 'top' };
+          dataRow.getCell(3).alignment = { horizontal: 'center', vertical: 'top' };
+          dataRow.getCell(4).alignment = { horizontal: 'center', vertical: 'top' };
+          
+          dataRow.eachCell(cell => {
+            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+          });
         });
       });
-      htmlContent += `
-        </table>
-        <br/><br/>
-      `;
     });
 
-    htmlContent += `</body></html>`;
-    
-    // Add BOM marker inside blob to force Excel to read document as UTF-8
-    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, filename.replace('.xls', '.xlsx').replace('.csv', '.xlsx'));
   };
 
   const handleInputKeyDown = (e) => {
