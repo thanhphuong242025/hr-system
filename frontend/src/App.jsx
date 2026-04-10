@@ -97,7 +97,7 @@ function App() {
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
-      <meta charset="utf-8" />
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
       <style>
         table { border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #000; padding: 5px; }
@@ -154,7 +154,8 @@ function App() {
 
     htmlContent += `</body></html>`;
     
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+    // Add BOM marker inside blob to force Excel to read document as UTF-8
+    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
